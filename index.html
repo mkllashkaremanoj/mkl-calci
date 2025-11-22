@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MKL Resin Arts - Product Price & Profit Calculator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --accent1: #ff6b9a;
+      --accent2: #ff3b5c;
+      --blue: #00a8ff;
+      --light: #f6fbff;
+      --card-bg: #ffffff;
+      --muted: #6b6b6b;
+    }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(180deg,#f6fbff, #ffffff); margin:0; padding:28px; color:#222; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:920px; margin:0 auto 18px; }
+    .brand { display:flex; gap:12px; align-items:center; }
+    .brand img { width:80px; height:80px; object-fit:contain; border-radius:8px; background:transparent; }
+    .brand h2 { margin:0; font-size:20px; letter-spacing:0.2px; }
+    .controls { display:flex; gap:10px; align-items:center; }
+    .btn {
+      background: linear-gradient(90deg,var(--accent1),var(--accent2));
+      color:white; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:700;
+      box-shadow:0 8px 20px rgba(255,80,110,0.12);
+    }
+    .btn.secondary { background: linear-gradient(90deg,#00a8ff,#006bff); }
+    .btn.ghost { background:transparent; color:var(--muted); border:1px solid #e6eefc; box-shadow:none; font-weight:600; }
+
+    /* Card */
+    .card { max-width:920px; margin:0 auto; background:var(--card-bg); border-radius:12px; box-shadow:0 8px 30px rgba(30,60,120,0.06); padding:14px; }
+    table { width:100%; border-collapse:collapse; font-size:15px; }
+    th { text-align:left; padding:10px 8px; color:#fff; background:linear-gradient(90deg,var(--blue),#0066d6); border-radius:6px; }
+    td { padding:8px; vertical-align:middle; }
+    .labelcell { width:48%; background:#f0f8ff; padding-left:12px; border-radius:6px; font-weight:600; color:#234; }
+    input[type="number"], input[type="text"], textarea {
+      width:100%; padding:8px 10px; border-radius:6px; border:1px solid #e1e7f2; font-size:14px;
+    }
+    textarea { min-height:60px; resize:vertical; }
+    .blueOutput { background:#00a8ff; color:#fff; font-weight:800; padding:8px; border-radius:6px; text-align:right; }
+    .yellowOutput { background:#ffefc3; color:#111; font-weight:800; padding:8px; border-radius:6px; text-align:right; }
+    .summaryRow td { padding:10px; }
+
+    .smallmuted { color:var(--muted); font-size:13px; }
+
+    .actions { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+    .flex-row { display:flex; gap:12px; }
+    .col { flex:1; }
+    @media(max-width:760px){
+      .topbar, .card { padding:12px; }
+      .labelcell{display:block;width:100%;}
+      table td{display:block;width:100%;}
+      .actions{flex-direction:column; align-items:stretch;}
+      .flex-row { flex-direction:column; }
+    }
+
+    /* small helper */
+    .inlineSmall { font-size:13px; color:var(--muted); margin-top:6px; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <!-- Use this when hosting: put Mkl_Color Logo.jpg in same repo; file will load -->
+      <img id="brandLogo" src="./Mkl_Color Logo.jpg" alt="MKL Logo" onerror="if(this.src!='/mnt/data/Mkl_Color Logo.jpg') this.src='/mnt/data/Mkl_Color Logo.jpg'">
+      <div>
+        <h2>MKL Resin Arts</h2>
+        <div class="smallmuted">Each piece from Mklre Arts is crafted to reflect beauty, durability</div>
+        <div class="smallmuted">Product Price & Profit Calculator</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn secondary" onclick="generateInvoiceWindow()">Generate Invoice</button>
+      <button class="btn" onclick="printInvoice()">Print Invoice</button>
+      <button class="btn ghost" onclick="resetForm()">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <!-- Customer details -->
+    <table>
+      <tr><th colspan="2">Customer Details (will appear on invoice)</th></tr>
+      <tr>
+        <td class="labelcell">Customer Name</td>
+        <td><input type="text" id="custName" placeholder="Customer full name"></td>
+      </tr>
+      <tr>
+        <td class="labelcell">Phone Number</td>
+        <td><input type="text" id="custPhone" placeholder="Phone number"></td>
+      </tr>
+      <tr>
+        <td class="labelcell">Address</td>
+        <td><textarea id="custAddress" placeholder="Customer address"></textarea></td>
+      </tr>
+      <tr>
+        <td class="labelcell">Email</td>
+        <td><input type="text" id="custEmail" placeholder="Email address"></td>
+      </tr>
+      <tr>
+        <td class="labelcell">Product Description</td>
+        <td><textarea id="productDesc" placeholder="Short description of the product / notes"></textarea></td>
+      </tr>
+    </table>
+
+    <div style="height:14px;"></div>
+
+    <table>
+      <tr><th colspan="2">Product Cost Details</th></tr>
+
+      <tr>
+        <td class="labelcell">Size</td>
+        <td><input type="text" id="size" placeholder="Example: 7x7 or 12x8" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Resin (₹)</td>
+        <td><input type="number" id="resin" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Wood (₹)</td>
+        <td><input type="number" id="wood" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Color / Pigment (₹)</td>
+        <td><input type="number" id="color" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Crystals / Rose / Add-ons (₹)</td>
+        <td><input type="number" id="crystals" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Labour (₹)</td>
+        <td><input type="number" id="labour" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Packing & Shipping (₹)</td>
+        <td><input type="number" id="pack" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Others (₹)</td>
+        <td><input type="number" id="others" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Apply GST?</td>
+        <td>
+          <label style="display:inline-flex; gap:8px; align-items:center;">
+            <input type="checkbox" id="applyGst" checked onchange="calculate()">
+            <span class="smallmuted">Include GST (below percent)</span>
+          </label>
+          <div style="margin-top:8px; max-width:160px;">
+            <input type="number" id="gstPercent" min="0" step="0.01" value="18" oninput="calculate()"> <span class="smallmuted"> % (GST)</span>
+          </div>
+        </td>
+      </tr>
+
+      <tr class="summaryRow">
+        <td class="labelcell" style="background:#00a8ff;color:#fff;">Total Cost (₹)</td>
+        <td><div id="total" class="blueOutput">0.00</div></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Selling Price (₹)</td>
+        <td><input type="number" id="price" min="0" step="0.01" oninput="calculate()"></td>
+      </tr>
+
+      <tr class="summaryRow">
+        <td class="labelcell" style="background:#ffefc3;color:#111;">Profit (₹)</td>
+        <td><div id="profit" class="yellowOutput">0.00</div></td>
+      </tr>
+
+      <tr>
+        <td class="labelcell">Total (incl. GST) (₹)</td>
+        <td><div id="totalWithGst" class="blueOutput">0.00</div></td>
+      </tr>
+
+      <tr>
+        <td colspan="2" class="smallmuted" style="padding-top:10px;">
+          Tip: Edit numeric fields and the Selling Price to see profit update automatically. Use Generate Invoice to create a printable invoice you can save or print.
+        </td>
+      </tr>
+    </table>
+
+    <div class="actions">
+      <button class="btn secondary" onclick="generateInvoiceWindow()">Generate Invoice</button>
+      <button class="btn" onclick="printInvoice()">Print Invoice</button>
+      <button class="btn ghost" onclick="resetForm()">Reset</button>
+    </div>
+  </div>
+
+<script>
+// Helper to read numbers safely
+function toNum(id){ return Number(document.getElementById(id).value) || 0; }
+
+function calculate(){
+  const resin = toNum('resin');
+  const wood = toNum('wood');
+  const color = toNum('color');
+  const crystals = toNum('crystals');
+  const labour = toNum('labour');
+  const pack = toNum('pack');
+  const others = toNum('others');
+  const selling = toNum('price');
+
+  // subtotal includes labour (so totals are correct) even though invoice hides labour line
+  const subtotal = resin + wood + color + crystals + labour + pack + others;
+  const applyGst = document.getElementById('applyGst').checked;
+  const gstPercent = Number(document.getElementById('gstPercent').value) || 0;
+
+  const gstAmount = applyGst ? (subtotal * gstPercent / 100) : 0;
+  const totalWithGst = subtotal + gstAmount;
+
+  const profit = selling - totalWithGst;
+
+  document.getElementById('total').innerText = subtotal.toFixed(2);
+  document.getElementById('totalWithGst').innerText = totalWithGst.toFixed(2);
+  document.getElementById('profit').innerText = profit.toFixed(2);
+}
+
+// Reset all inputs
+function resetForm(){
+  document.getElementById('size').value = '';
+  ['resin','wood','color','crystals','labour','pack','others','price',
+   'custName','custPhone','custAddress','custEmail','productDesc'].forEach(id => {
+     const el = document.getElementById(id);
+     if(el) el.value = '';
+  });
+  document.getElementById('applyGst').checked = true;
+  document.getElementById('gstPercent').value = 18;
+  calculate();
+}
+
+// Generate next invoice number: INV-YYYY-###
+// Uses localStorage to persist a counter per year
+function generateInvoiceNumber(){
+  try {
+    const year = new Date().getFullYear();
+    const key = 'mkl_invoice_counter_' + year;
+    let counter = Number(localStorage.getItem(key) || 0);
+    counter = counter + 1;
+    localStorage.setItem(key, String(counter));
+    const padded = String(counter).padStart(3,'0');
+    return `INV-${year}-${padded}`;
+  } catch(e) {
+    // fallback if localStorage not available
+    const now = new Date();
+    const padded = String(Math.floor(Math.random()*900)+100); // random 3 digits
+    return `INV-${now.getFullYear()}-${padded}`;
+  }
+}
+
+// Build professional invoice HTML and open in new window (user can save/print)
+// Note: Labour & Profit rows are intentionally omitted from the printed invoice.
+function generateInvoiceWindow(){
+  calculate(); // ensure latest
+
+  // Customer fields
+  const custName = (document.getElementById('custName').value || '-');
+  const custPhone = (document.getElementById('custPhone').value || '-');
+  const custAddress = (document.getElementById('custAddress').value || '-').replace(/\n/g,'<br>');
+  const custEmail = (document.getElementById('custEmail').value || '-');
+  const productDesc = (document.getElementById('productDesc').value || '-').replace(/\n/g,'<br>');
+
+  const size = document.getElementById('size').value || '-';
+  const resin = toNum('resin'), wood = toNum('wood'), color = toNum('color'),
+        crystals = toNum('crystals'), labour = toNum('labour'), pack = toNum('pack'), others = toNum('others'),
+        selling = toNum('price');
+  const subtotal = resin + wood + color + crystals + labour + pack + others;
+  const applyGst = document.getElementById('applyGst').checked;
+  const gstPercent = Number(document.getElementById('gstPercent').value) || 0;
+  const gstAmount = applyGst ? (subtotal * gstPercent / 100) : 0;
+  const totalWithGst = subtotal + gstAmount;
+  const profit = selling - totalWithGst;
+
+  const invoiceNumber = generateInvoiceNumber();
+  const logoSrc = './Mkl_Color Logo.jpg';
+
+  const businessName = "MKL Resin Arts";
+  const businessAddress = "18-6-213 Vijaya Laxmi Nivas, Outside Laldarwaza, HYD-053";
+  const businessPhone = "9390970295";
+  const businessEmail = "mklarts@hotmail.com";
+  const businessGst = "36ABNPL4676P1ZP";
+
+  const invoiceHtml = `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Invoice - MKL Resin Arts</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        padding: 28px;
+        background: #fff;
+        color: #222;
+        max-width: 820px;
+        margin: auto;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        border-bottom: 2px solid #efefef;
+        padding-bottom: 16px;
+      }
+      .header img { width: 110px; height: 110px; object-fit: contain; }
+      .title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+      .tagline { color: #666; font-size: 13px; }
+      .metaRow { display:flex; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap; }
+      .box { padding:10px; border:1px solid #eee; border-radius:8px; min-width:180px; background:#fafafa; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 15px; }
+      th { background: #0066d6; color: white; padding: 10px; text-align: left; font-weight: 600; }
+      td { padding: 10px; border-bottom: 1px solid #eaeaea; }
+      .right { text-align: right; }
+      .total { background: #f2f7ff; font-weight: 800; }
+      .notes { margin-top:14px; color:#444; font-size:14px; }
+      .signature { margin-top:28px; display:flex; gap:20px; align-items:center; justify-content:space-between; }
+      .sigBox { width:48%; border-top:1px dashed #bbb; padding-top:8px; text-align:center; color:#555; }
+      .stamp { width:28%; text-align:center; border:1px dashed #bbb; padding:12px; border-radius:8px; color:#777; font-size:13px; }
+      .actions { margin-top: 24px; text-align: right; }
+      .btn { background: linear-gradient(90deg,#00a8ff,#006bff); color: white; padding: 10px 14px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+      @media print { .actions { display:none; } }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img src="${logoSrc}" alt="MKL Logo" onerror="if(this.src!='/mnt/data/Mkl_Color Logo.jpg') this.src='/mnt/data/Mkl_Color Logo.jpg'">
+      <div>
+        <div class="title">MKL Resin Arts</div>
+        <div class="tagline">Each piece from Mklre Arts is crafted to reflect beauty, durability</div>
+        <div style="margin-top:8px; color:#444; font-size:13px;">Invoice: <strong>${invoiceNumber}</strong> &nbsp; | &nbsp; Date: ${new Date().toLocaleString()}</div>
+      </div>
+    </div>
+
+    <div class="metaRow">
+      <div class="box">
+        <strong>Bill To</strong><br>
+        ${custName}<br>
+        ${custPhone ? ('Phone: ' + custPhone + '<br>') : '' }
+        ${custEmail ? ('Email: ' + custEmail + '<br>') : '' }
+        ${custAddress ? ('<div style="margin-top:8px;">' + custAddress + '</div>') : ''}
+      </div>
+
+      <div class="box">
+        <strong>Order</strong><br>
+        <div style="margin-top:6px;">Product: ${productDesc}</div>
+        <div style="margin-top:8px;">Size: ${size}</div>
+      </div>
+
+      <div class="box" style="min-width:220px;">
+        <strong>Summary</strong><br>
+        <div style="margin-top:6px;">Subtotal: ₹ ${subtotal.toFixed(2)}</div>
+        <div style="margin-top:6px;">GST (${applyGst ? gstPercent.toFixed(2) : 0}%): ₹ ${gstAmount.toFixed(2)}</div>
+        <div style="margin-top:8px; font-weight:800;">Total (incl. GST): ₹ ${totalWithGst.toFixed(2)}</div>
+        <div style="margin-top:6px;">Selling Price: ₹ ${selling.toFixed(2)}</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Item</th><th class="right">Amount (₹)</th></tr>
+      <tr><td>Resin</td><td class="right">${resin.toFixed(2)}</td></tr>
+      <tr><td>Wood</td><td class="right">${wood.toFixed(2)}</td></tr>
+      <tr><td>Color / Pigment</td><td class="right">${color.toFixed(2)}</td></tr>
+      <tr><td>Crystals / Add-ons</td><td class="right">${crystals.toFixed(2)}</td></tr>
+      <!-- Labour row intentionally omitted from printed invoice -->
+      <tr><td>Packing & Shipping</td><td class="right">${pack.toFixed(2)}</td></tr>
+      <tr><td>Others</td><td class="right">${others.toFixed(2)}</td></tr>
+      <tr class="total"><td>Subtotal</td><td class="right">₹ ${subtotal.toFixed(2)}</td></tr>
+      <tr><td>GST ${applyGst ? gstPercent.toFixed(2) : 0}%</td><td class="right">₹ ${gstAmount.toFixed(2)}</td></tr>
+      <tr class="total"><td>Total (incl. GST)</td><td class="right">₹ ${totalWithGst.toFixed(2)}</td></tr>
+      <tr><td>Selling Price</td><td class="right">₹ ${selling.toFixed(2)}</td></tr>
+      <!-- Profit row intentionally omitted from printed invoice -->
+    </table>
+
+    <div class="notes">
+      <strong>Notes:</strong><br>
+      ${productDesc !== '-' ? productDesc : ''}
+    </div>
+
+    <div class="signature">
+      <div class="sigBox">Customer Signature</div>
+      <div class="stamp">
+        Authorized Sign / Stamp
+        <br>
+        <small style="display:block;margin-top:6px;">
+          MKL Resin Arts<br>
+          18-6-213 Vijaya Laxmi Nivas, Outside Laldarwaza, HYD-053<br>
+          Phone: 9390970295<br>
+          Email: mklarts@hotmail.com<br>
+          GST: 36ABNPL4676P1ZP
+        </small>
+      </div>
+      <div class="sigBox">For MKL Resin Arts</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+  </body>
+  </html>
+  `;
+
+  const win = window.open('', '_blank');
+  win.document.open();
+  win.document.write(invoiceHtml);
+  win.document.close();
+}
+
+// Direct print: open invoice and call print automatically (user can print via button in invoice window)
+function printInvoice(){
+  generateInvoiceWindow();
+}
+
+// Initialize
+calculate();
+</script>
+
+</body>
+</html>
